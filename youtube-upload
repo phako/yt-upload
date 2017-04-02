@@ -111,6 +111,11 @@ def initialize_upload(file_name, youtube, options):
   if "title" not in snippet:
     snippet["title"] = os.path.splitext(os.path.basename(file_name))[0]
 
+  # Current title is a template that expects the generated filename
+  if "%s" in snippet["title"]:
+    name = os.path.splitext(os.path.basename(file_name))[0]
+    snippet["title"] = (snippet["title"] % name)
+
   if options.description:
     snippet["description"] = options.description
 
@@ -219,6 +224,7 @@ if __name__ == '__main__':
 
   if len(files) == 0:
     exit("Please specify a valid file using the --file= parameter.")
+
 
   youtube = get_authenticated_service(args)
   for f in files:
