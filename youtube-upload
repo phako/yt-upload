@@ -8,6 +8,9 @@ import sys
 import time
 import json
 import progressbar as pb
+from datetime import datetime,timedelta
+import dateutil.tz
+import parsedatetime as pdt
 
 from apiclient.discovery import build
 from apiclient.errors import HttpError
@@ -226,6 +229,15 @@ if __name__ == '__main__':
     exit("Please specify a valid file using the --file= parameter.")
 
 
+
+  if args.publishAt:
+    dt, result= pdt.Calendar().parseDT(args.publishAt, tzinfo = dateutil.tz.tzlocal())
+    if result == 0:
+      exit(("Not a valid date: %s" % args.publishAt))
+    # word-around to add the millisecond part to datetime, otherwise API does not
+    # accept the time
+    dt = dt + timedelta(milliseconds = 1)
+    args.publishAt = dt.isoformat()
   youtube = get_authenticated_service(args)
   for f in files:
     try:
