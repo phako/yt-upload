@@ -132,7 +132,7 @@ def initialize_upload(file_name, youtube, options):
   if options.publishAt:
     status = dict(
       privacyStatus = "private",
-      publishAt = options.publishAt
+      publishAt = options.publishDate
     )
   else:
     status = dict(
@@ -221,12 +221,16 @@ if __name__ == '__main__':
   argparser.add_argument("--recordedAt", help="Recording time of video (ISO-8601)")
   argparser.add_argument("--template", help="Meta-data template file using JSON")
   argparser.add_argument("--dry-run", action='store_true', default=False, help="Do not upload, dump meta-data only")
+  argparser.add_argument("--publishInterval", action="append", help="Publish each file after starting at --publishAt")
   args = argparser.parse_args()
 
   files = [f for f in args.file if os.path.exists(f)]
 
   if len(files) == 0:
     exit("Please specify a valid file using the --file= parameter.")
+
+  if args.publishInterval and not args.publishAt:
+    exit("Cannot specifiy publishing interval without start date --publishAt")
 
 
 
@@ -237,10 +241,21 @@ if __name__ == '__main__':
     # word-around to add the millisecond part to datetime, otherwise API does not
     # accept the time
     dt = dt + timedelta(milliseconds = 1)
-    args.publishAt = dt.isoformat()
+    args.publishAt = dt
+    args.publishDate = dt.isoformat()
   youtube = get_authenticated_service(args)
+  i = 0
   for f in files:
     try:
+      if args.publishInterval:
+        current = args.publishInterval[i % len(args.publishInterval)]
+        dt, result= pdt.Calendar().parseDT(current, args.publishAt, tzinfo = dateutil.tz.tzlocal())
+        if (dt.microsecond == 0):
+          dt = dt + timedelta(milliseconds = 1)
+        args.publishAt = dt
+        args.publishDate = dt.isoformat()
+
       initialize_upload(f, youtube, args)
     except HttpError as e:
       print("An HTTP error %d occurred:\n%s" % (e.resp.status, e.content))
+    i = i + 1
