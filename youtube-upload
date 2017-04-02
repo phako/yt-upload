@@ -6,6 +6,7 @@ import os
 import random
 import sys
 import time
+import json
 
 from apiclient.discovery import build
 from apiclient.errors import HttpError
@@ -86,12 +87,36 @@ def get_authenticated_service(args):
     http=credentials.authorize(httplib2.Http()))
 
 def initialize_upload(youtube, options):
-  tags = None
+
+  body = dict()
+
+  # Load initial data from template if available
+  if options.template:
+    try:
+      with open(options.template, 'r') as f:
+        body = json.load(f)
+    except IOError, e:
+      print("Could not open template file %s, ignoring argument" % options.template)
+
+  # Fill with overrides from commandline
+  if not body.has_key("snippet"):
+    body["snippet"] = dict()
+
+  snippet = body["snippet"]
+  if options.title:
+    snippet["title"] = options.title
+
+  if options.description:
+    snippet["description"] = options.description
+
   if options.keywords:
-    tags = options.keywords.split(",")
+    snippet["tags"] = options.keywords.split(",")
+
+  if options.recordedAt:
+    body["recordingDetails"] = dict(recordingDate = options.recordedAt)
 
   status = dict()
-  if options.publishAt is not None:
+  if options.publishAt:
     status = dict(
       privacyStatus = "private",
       publishAt = options.publishAt
@@ -100,19 +125,9 @@ def initialize_upload(youtube, options):
     status = dict(
       privacyStatus = options.privacyStatus
     )
+  body["status"] = status
 
-  body=dict(
-    snippet=dict(
-      title=options.title,
-      description=options.description,
-      tags=tags,
-      categoryId=options.category
-    ),
-    status=status
-  )
 
-  if options.recordedAt is not None:
-    body["recordingDetails"] = dict(recordingDate = options.recordedAt)
 
   # Call the API's videos.insert method to create and upload the video.
   insert_request = youtube.videos().insert(
@@ -183,6 +198,7 @@ if __name__ == '__main__':
     default=VALID_PRIVACY_STATUSES[0], help="Video privacy status.")
   argparser.add_argument("--publishAt", help="Publishing date (ISO-8601)")
   argparser.add_argument("--recordedAt", help="Recording time of video (ISO-8601)")
+  argparser.add_argument("--template", help="Meta-data template file using JSON")
   args = argparser.parse_args()
 
   if not os.path.exists(args.file):
