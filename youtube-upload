@@ -127,7 +127,9 @@ def initialize_upload(youtube, options):
     )
   body["status"] = status
 
-
+  if args.dry_run:
+    print(body)
+    return
 
   # Call the API's videos.insert method to create and upload the video.
   insert_request = youtube.videos().insert(
@@ -199,6 +201,7 @@ if __name__ == '__main__':
   argparser.add_argument("--publishAt", help="Publishing date (ISO-8601)")
   argparser.add_argument("--recordedAt", help="Recording time of video (ISO-8601)")
   argparser.add_argument("--template", help="Meta-data template file using JSON")
+  argparser.add_argument("--dry-run", action='store_true', default=False, help="Do not upload, dump meta-data only")
   args = argparser.parse_args()
 
   if not os.path.exists(args.file):
