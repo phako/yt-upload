@@ -140,6 +140,9 @@ def initialize_upload(file_name, youtube, options):
   if options.keywords:
     snippet["tags"] = options.keywords.split(",")
 
+  if options.category:
+    snippet["categoryId"] = options.category
+
   if options.recordedAt:
     body["recordingDetails"] = dict(recordingDate = options.recordedAt)
 
